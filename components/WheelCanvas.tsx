@@ -140,15 +140,15 @@ function drawHotdog(context: CanvasRenderingContext2D, center: number, radius: n
     // Skip drawing until the image has decoded; the next frame will pick it up.
     if (!img.complete || img.naturalWidth === 0) return;
 
-    const tipX = center + radius - size * 0.01;
-    const backX = center + radius + size * 0.075;
+    const tipX = center + radius - size * 0.05;
+    const backX = center + radius + size * 0.1;
     const pointerWidth = backX - tipX;
     const pointerHeight = img.naturalHeight / img.naturalWidth * pointerWidth;
 
     // Pointing left toward the wheel; rotate 180° so the image's natural left is the tip.
     context.save();
     context.translate(tipX + pointerWidth / 2, center);
-    context.rotate(Math.PI);
+    context.rotate(-30 * Math.PI / 180);
     context.drawImage(img, -pointerWidth / 2, -pointerHeight / 2, pointerWidth, pointerHeight);
     context.restore();
 }
@@ -203,8 +203,11 @@ function draw(canvas: HTMLCanvasElement, entries: WheelEntry[], size: number, ro
     context.lineWidth = 4;
     context.stroke();
 
-    // drawPointer(context, center, radius, size);
-    drawHotdog(context, center, radius, size);
+    if(isClub){
+        drawHotdog(context, center, radius, size);
+    } else {
+        drawPointer(context, center, radius, size);
+    }
 }
 
 export default function WheelCanvas({ entries, className = '', isClub = true, onWinner }: Props) {
