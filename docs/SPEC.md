@@ -30,7 +30,7 @@ Miss Micro's Magick Wheel is a browser-based randomizer for choosing from a user
 7. Starting a spin provides visible motion or progress and ends with one deterministic selected entry.
 8. The selected entry triggers a winner animation and is displayed in an accessible modal.
 9. Spinning music plays during the wheel animation when permitted, and homepage wheel icons fly across the screen after a win.
-10. The HTML-in-Canvas wheel is available only in supported Chrome environments; other browsers receive a clear availability message or fallback.
+10. The primary Canvas wheel is the default experience; the HTML-in-Canvas experimental route (`/wheel/html`) is not part of the core acceptance path.
 11. The layout remains functional at narrow mobile widths and larger desktop widths.
 
 ## Experience Direction
@@ -51,7 +51,7 @@ The visual language should feel theatrical and handmade while keeping controls c
 - Next.js 16 App Router with React 19 and TypeScript.
 - Tailwind CSS 4 through the existing PostCSS setup unless a small local stylesheet is more appropriate.
 - Client-side interaction state only for the first release; source options come from the server-side Google Sheets wrapper.
-- The primary wheel animation uses the Canvas API; the HTML-in-Canvas variant is a separate Chrome-only experience.
+- The primary wheel animation uses the Canvas API.
 - No new dependency is required for the core wheel interaction unless implementation needs become materially complex.
 
 ## Accessibility and Quality
@@ -68,8 +68,19 @@ The visual language should feel theatrical and handmade while keeping controls c
 - **Default options:** Suggested starting point: a small whimsical set that demonstrates the interaction while remaining easy to replace.
 - **Persistence:** Suggested first release behavior: session-only state; local storage can be evaluated after the core flow is proven.
 - **Wheel style:** Suggested first release behavior: Canvas-rendered sections with a fixed pointer and a predictable random selection.
-- **Chrome support:** Confirm the target Chrome versions and the specific HTML-in-Canvas API before implementing task 8.
 - **History:** Suggested first release behavior: show only the latest result; add result history only if repeated spins need it.
+
+## HTML-in-Canvas Experiment
+
+The `/wheel/html` route implemented the proposed HTML-in-Canvas API (`layoutsubtree`, `drawable`, `drawElementImage`) behind Chrome's `#canvas-draw-element` flag. The experiment was **parked, not failed**:
+
+- The API exists only in Chrome Canary behind a flag and throws `InvalidStateError` when called before the browser has recorded an element snapshot, which pushes all drawing into the `paint` event lifecycle.
+- Measured against the plain Canvas wheel, the DOM-snapshot path was not more performant — each frame still pays a full 2D pass plus snapshot overhead, and the extra `paint`-event indirection complicates the spin animation that currently runs off a `requestAnimationFrame` loop.
+- The implementation is too new: the spec is an active WICG draft, the IDL is changing, and even the labeled samples warn they need updating.
+
+**Revisit when:** the feature ships to stable Chrome without a flag (or at least to origin trial), and the WICG example suite stops marking demos as needing updates. At that point Task 8 reopens against the same normalized entries contract as the Canvas wheel.
+
+Until then, the experimental route remains in the tree with a graceful `fillText` fallback so `/wheel/html` degrades to the plain Canvas behavior in unsupported browsers.
 
 These decisions should be resolved before the interaction phase is marked complete if they affect acceptance behavior.
 

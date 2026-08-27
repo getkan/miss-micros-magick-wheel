@@ -42,8 +42,6 @@ Add spinning music and animate the homepage wheel icons flying across the screen
 
 **Exit criteria:** Audio and win visuals start and stop with the correct wheel states, do not block the result modal, and degrade gracefully when unavailable.
 
-## 8. HTML-in-Canvas Wheel
+## 8. HTML-in-Canvas Wheel (Parked)
 
-Build the HTML-in-Canvas version of the wheel for supported Chrome environments and provide a clear unsupported-browser experience elsewhere.
-
-**Exit criteria:** The Chrome implementation uses the same entries and winner behavior as the Canvas version, while other browsers receive a clear availability message or fallback.
+The experimental `/wheel/html` route was prototyped but is **parked, not failed**: the API remained Chrome-Canary-flag-only, drawing had to move into the `paint` event lifecycle to avoid `InvalidStateError`, and performance was not better than the plain Canvas wheel. The route and the `drawable`/`layoutsubtree` plumbing stay in the tree with a `fillText` fallback, and the task reopens once HTML-in-Canvas reaches stable Chrome or an origin trial.
