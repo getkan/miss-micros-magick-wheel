@@ -34,6 +34,18 @@ const BOOST_TURNS = 6;
 const BOOST_PLAYBACK_STEP = 0.25;
 const MAX_PLAYBACK_RATE = 4;
 
+
+// Cached image for the pointer. Loaded once per module, not per frame.
+let pointerImage: HTMLImageElement | null = null;
+function getPointerImage(): HTMLImageElement {
+    if (!pointerImage) {
+        pointerImage = new Image();
+        pointerImage.src = '/hotdog.png';
+    }
+    return pointerImage;
+}
+
+
 /** Spreads entries around the colour wheel, starting from yellow. */
 function segmentColor(index: number, count: number): string {
     const hue = (YELLOW_HUE + (index * 360) / count) % 360;
@@ -123,6 +135,26 @@ function drawPointer(context: CanvasRenderingContext2D, center: number, radius: 
     context.stroke();
 }
 
+function drawHotdog(context: CanvasRenderingContext2D, center: number, radius: number, size: number) {
+    const img = getPointerImage();
+    // Skip drawing until the image has decoded; the next frame will pick it up.
+    if (!img.complete || img.naturalWidth === 0) return;
+
+    const tipX = center + radius - size * 0.01;
+    const backX = center + radius + size * 0.075;
+    const pointerWidth = backX - tipX;
+    const pointerHeight = img.naturalHeight / img.naturalWidth * pointerWidth;
+
+    // Pointing left toward the wheel; rotate 180° so the image's natural left is the tip.
+    context.save();
+    context.translate(tipX + pointerWidth / 2, center);
+    context.rotate(Math.PI);
+    context.drawImage(img, -pointerWidth / 2, -pointerHeight / 2, pointerWidth, pointerHeight);
+    context.restore();
+}
+
+
+
 function draw(canvas: HTMLCanvasElement, entries: WheelEntry[], size: number, rotation: number, isClub: boolean) {
     const context = canvas.getContext('2d');
     if (!context) return;
@@ -171,7 +203,8 @@ function draw(canvas: HTMLCanvasElement, entries: WheelEntry[], size: number, ro
     context.lineWidth = 4;
     context.stroke();
 
-    drawPointer(context, center, radius, size);
+    // drawPointer(context, center, radius, size);
+    drawHotdog(context, center, radius, size);
 }
 
 export default function WheelCanvas({ entries, className = '', isClub = true, onWinner }: Props) {
