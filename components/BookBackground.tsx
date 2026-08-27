@@ -31,9 +31,9 @@ function buildLayerBooks({ percent, minBands, maxBands }: LayerConfig) {
 
 export default function BookBackground() {
     const layers = useMemo<LayerConfig[]>(() => [
-        { percent: 0.9, minBands: 3, maxBands: 5, duration: 24 },
-        { percent: 0.6, minBands: 4, maxBands: 6, duration: 18 },
-        { percent: 0.4, minBands: 5, maxBands: 7, duration: 12 },
+        { percent: 0.9, minBands: 3, maxBands: 5, duration: 48 },
+        { percent: 0.6, minBands: 4, maxBands: 6, duration: 36 },
+        { percent: 0.4, minBands: 5, maxBands: 7, duration: 24 },
     ], [])
 
     const bookLayers = useMemo(

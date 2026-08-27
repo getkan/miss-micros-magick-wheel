@@ -12,7 +12,7 @@ export type WheelDataResult =
     | { status: 'error'; message: string };
 
 const DEFAULT_RANGE = 'Wheel!A2:C';
-const WEIGHT_MULTIPLIER = 25;
+const WEIGHT_MULTIPLIER = 15;
 const DEFAULT_WEIGHT = 1;
 
 // Accepts a bare id or a full spreadsheet URL pasted from the browser.
@@ -98,6 +98,7 @@ function normalizeRows(rows: unknown[][]): WheelEntry[] {
 }
 
 export async function getWheelEntries(): Promise<WheelDataResult> {
+
     const config = readConfig();
 
     if (!config.spreadsheetId) {

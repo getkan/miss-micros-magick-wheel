@@ -9,6 +9,7 @@ export type WheelState = 'idle' | 'running' | 'winner';
 interface Props {
     entries: WheelEntry[];
     className?: string;
+    isClub?: boolean
     onWinner?: (entry: WheelEntry) => void;
 }
 
@@ -122,7 +123,7 @@ function drawPointer(context: CanvasRenderingContext2D, center: number, radius: 
     context.stroke();
 }
 
-function draw(canvas: HTMLCanvasElement, entries: WheelEntry[], size: number, rotation: number) {
+function draw(canvas: HTMLCanvasElement, entries: WheelEntry[], size: number, rotation: number, isClub: boolean) {
     const context = canvas.getContext('2d');
     if (!context) return;
 
@@ -145,15 +146,23 @@ function draw(canvas: HTMLCanvasElement, entries: WheelEntry[], size: number, ro
     // Every weight unit is its own labelled slice.
     const sliceSweep = TWO_PI / total;
     const fontSize = Math.max(8, Math.min(size * 0.02, radius * sliceSweep * 0.95));
+    const largeFontSize = Math.max(12, Math.min(size * 0.02, radius * sliceSweep * 0.95));
     const inset = size * 0.035;
 
     entries.forEach((entry, index) => {
         const color = segmentColor(index, entries.length);
 
-        for (let slice = 0; slice < entry.weight; slice += 1) {
-            drawSlice(context, center, radius, angle, sliceSweep, color, entry.title, fontSize, inset);
-            angle += sliceSweep;
+        if(isClub){
+            for (let slice = 0; slice < entry.weight; slice += 1) {
+                drawSlice(context, center, radius, angle, sliceSweep, color, entry.title, fontSize, inset);
+                angle += sliceSweep;
+            }
+        } else {
+            const sweep = entry.weight * sliceSweep;
+            drawSlice(context, center, radius, angle, sweep, color, entry.title, largeFontSize, inset);
+            angle += sweep;
         }
+
     });
 
     context.beginPath();
@@ -165,7 +174,8 @@ function draw(canvas: HTMLCanvasElement, entries: WheelEntry[], size: number, ro
     drawPointer(context, center, radius, size);
 }
 
-export default function WheelCanvas({ entries, className = '', onWinner }: Props) {
+export default function WheelCanvas({ entries, className = '', isClub = true, onWinner }: Props) {
+
     const containerRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
@@ -189,7 +199,7 @@ export default function WheelCanvas({ entries, className = '', onWinner }: Props
 
         const render = () => {
             const size = Math.min(container.clientWidth, MAX_SIZE);
-            if (size > 0) draw(canvas, entries, size, rotationRef.current);
+            if (size > 0) draw(canvas, entries, size, rotationRef.current, isClub);
         };
 
         const observer = new ResizeObserver(render);
@@ -233,7 +243,7 @@ export default function WheelCanvas({ entries, className = '', onWinner }: Props
             cancelAnimationFrame(frameId);
             observer.disconnect();
         };
-    }, [entries, state, onWinner]);
+    }, [entries, state, onWinner, isClub]);
 
     useEffect(() => {
         const audio = audioRef.current;
@@ -259,42 +269,52 @@ export default function WheelCanvas({ entries, className = '', onWinner }: Props
         const from = rotationRef.current;
         const landing = normalizeAngle(POINTER_ANGLE - segmentMidAngle(entries, index));
         const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        const turns = reduceMotion ? 0 : SPIN_TURNS;
+        const baseTurns = isClub ? SPIN_TURNS : SPIN_TURNS / 2
+        const turns = reduceMotion ? 0 : baseTurns;
 
         spinRef.current = {
             start: performance.now(),
             from,
             to: from + turns * TWO_PI + normalizeAngle(landing - from),
-            duration: reduceMotion ? REDUCED_SPIN_DURATION : SPIN_DURATION,
+            duration: reduceMotion || !isClub  ? REDUCED_SPIN_DURATION : SPIN_DURATION,
             index
         };
 
         setWinner(null);
         setIsModalOpen(false);
         setState('running');
-    }, [canSpin, entries, state]);
+    }, [canSpin, entries, state, isClub]);
 
     const speedUp = useCallback(() => {
         const spin = spinRef.current;
         if (state !== 'running' || !spin) return;
 
-        // Whole extra turns cover more distance in the same time without moving the landing point.
-        spin.to += BOOST_TURNS * TWO_PI;
 
-        const audio = audioRef.current;
-        if (audio) audio.playbackRate = Math.min(MAX_PLAYBACK_RATE, audio.playbackRate + BOOST_PLAYBACK_STEP);
-    }, [state]);
+
+        if(isClub){
+            // Whole extra turns cover more distance in the same time without moving the landing point.
+            spin.to += BOOST_TURNS * TWO_PI;
+            const audio = audioRef.current;
+            if (audio) audio.playbackRate = Math.min(MAX_PLAYBACK_RATE, audio.playbackRate + BOOST_PLAYBACK_STEP);
+        } else {
+            spin.duration = spin.duration / 2
+        }
+
+    }, [state, isClub]);
 
     return (
         <div className={`flex w-full flex-col items-center gap-4 ${className}`}>
-            <audio
-                ref={audioRef}
-                src={SPIN_MUSIC_SRC}
-                loop
-                muted={isMuted}
-                preload="auto"
-                onError={() => setIsAudioUnavailable(true)}
-            />
+            {
+                isClub
+                && <audio
+                    ref={audioRef}
+                    src={SPIN_MUSIC_SRC}
+                    loop
+                    muted={isMuted}
+                    preload="auto"
+                    onError={() => setIsAudioUnavailable(true)}
+                />
+            }
 
             <div ref={containerRef} className="flex w-full justify-center">
                 <canvas
@@ -316,19 +336,23 @@ export default function WheelCanvas({ entries, className = '', onWinner }: Props
                     {state === 'running' ? 'Speed Up' : state === 'winner' ? 'Spin Again' : 'Spin The Wheel'}
                 </button>
 
-                <button
-                    type="button"
-                    onClick={() => setIsMuted((muted) => !muted)}
-                    disabled={isAudioUnavailable}
-                    aria-pressed={isMuted}
-                    className="border-offwhite text-xs cursor-pointer rounded-lg border-2 px-4 py-2 disabled:opacity-50"
-                >
-                    {isAudioUnavailable ? 'Music Unavailable' : isMuted ? 'Unmute' : 'Mute'}
-                </button>
+                {
+                    isClub &&
+                    <button
+                        type="button"
+                        onClick={() => setIsMuted((muted) => !muted)}
+                        disabled={isAudioUnavailable}
+                        aria-pressed={isMuted}
+                        className="border-offwhite text-xs cursor-pointer rounded-lg border-2 px-4 py-2 disabled:opacity-50"
+                    >
+                        {isAudioUnavailable ? 'Music Unavailable' : isMuted ? 'Unmute' : 'Mute'}
+                    </button>
+                }
+
             </div>
 
             <p role="status" aria-live="polite" className="min-h-7 text-lg">
-                {winner ? `The Wheel chose ${winner.title}${winner.recommender ? `, from ${winner.recommender}` : ''}.` : ''}
+                {winner ? `The Wheel choses ${winner.title}${winner.recommender ? `, from ${winner.recommender}` : ''}.` : ''}
             </p>
 
             {winner && isModalOpen ? <WinnerModal winner={winner} onClose={() => setIsModalOpen(false)} /> : null}

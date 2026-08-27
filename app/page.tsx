@@ -10,7 +10,7 @@ export default function Home() {
       className="border-offwhite bg-background relative flex flex-col gap-2 rounded-lg border-2 p-8 md:min-w-200 "
     >
       <h1
-        className="bg-background absolute -top-4 left-2 flex transform flex-nowrap items-center gap-2 px-4 text-[1.5rem] font-bold sm:-top-8 sm:text-[2rem]"
+        className="bg-background absolute -top-4 left-2 flex transform flex-nowrap items-center gap-2 px-4 text-[1.5rem] font-bold sm:-top-8 sm:text-[2rem] rounded-4xl"
       >
         <span className="whitespace-nowrap"><span className="hidden sm:inline-block">Miss Micro&#x27;s</span> Magick Wheel</span>
         <Image src="wheel.svg" alt="Wheel" height="36" width="36" className="animate-spin" loading="eager"></Image>
